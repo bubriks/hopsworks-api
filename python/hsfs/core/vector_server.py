@@ -429,7 +429,8 @@ class VectorServer:
                 skipped_empty_entries.append(idx)
 
         if online_client_choice == self.DEFAULT_REST_CLIENT and len(rondb_entries) > 0:
-            _logger.debug("get_batch_feature_vector Online REST client")
+            _logger.info("get_batch_feature_vector Online REST client")
+            print(11111111111)
             batch_results = self.rest_client_engine.get_batch_feature_vectors(
                 entries=rondb_entries,
                 drop_missing=not allow_missing,
@@ -437,10 +438,11 @@ class VectorServer:
             )
         elif len(rondb_entries) > 0:
             # get result row
-            _logger.debug("get_batch_feature_vectors through SQL client")
+            _logger.info("get_batch_feature_vectors through SQL client")
+            print(22222222222)
             batch_results, _ = self.sql_client.get_batch_feature_vectors(rondb_entries)
         else:
-            _logger.debug("Empty entries for rondb, skipping fetching.")
+            _logger.info("Empty entries for rondb, skipping fetching.")
             batch_results = []
 
         _logger.debug("Assembling feature vectors from batch results")
