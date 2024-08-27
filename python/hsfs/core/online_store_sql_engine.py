@@ -325,7 +325,8 @@ class OnlineStoreSqlClient:
         _logger.debug(
             f"Executing prepared statements for serving vector with entries: {bind_entries}"
         )
-        results_dict = asyncio.run(
+        loop = self._get_or_create_event_loop()
+        results_dict = loop.run_until_complete(
             self._execute_prep_statements(prepared_statement_execution, bind_entries)
         )
         _logger.debug(f"Retrieved feature vectors: {results_dict}")
@@ -392,7 +393,8 @@ class OnlineStoreSqlClient:
             f"Executing prepared statements for batch vector with entries: {entry_values}"
         )
         # run all the prepared statements in parallel using aiomysql engine
-        parallel_results = asyncio.run(
+        loop = self._get_or_create_event_loop()
+        parallel_results = loop.run_until_complete(
             self._execute_prep_statements(prepared_stmts_to_execute, entry_values)
         )
 
@@ -569,8 +571,11 @@ class OnlineStoreSqlClient:
             _logger.debug("Waiting for resultset.")
             resultset = await cursor.fetchall()
             _logger.debug(f"Retrieved resultset: {resultset}. Closing cursor.")
+            print(1)
             await cursor.close()
+            print(2)
 
+        print(3)
         return resultset
 
     async def _execute_prep_statements(
