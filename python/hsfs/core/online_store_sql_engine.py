@@ -326,7 +326,7 @@ class OnlineStoreSqlClient:
             f"Executing prepared statements for serving vector with entries: {bind_entries}"
         )
         loop = self._get_or_create_event_loop()
-        results_dict = loop.run_until_complete(
+        results_dict = loop.run(
             self._execute_prep_statements(prepared_statement_execution, bind_entries)
         )
         _logger.debug(f"Retrieved feature vectors: {results_dict}")
@@ -394,7 +394,7 @@ class OnlineStoreSqlClient:
         )
         # run all the prepared statements in parallel using aiomysql engine
         loop = self._get_or_create_event_loop()
-        parallel_results = loop.run_until_complete(
+        parallel_results = loop.run(
             self._execute_prep_statements(prepared_stmts_to_execute, entry_values)
         )
 
