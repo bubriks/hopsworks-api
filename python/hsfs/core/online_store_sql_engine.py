@@ -574,6 +574,7 @@ class OnlineStoreSqlClient:
             print(1)
             await cursor.close()
             print(2)
+            await conn.close()
 
         print(3)
         return resultset
