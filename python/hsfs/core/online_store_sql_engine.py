@@ -574,6 +574,7 @@ class OnlineStoreSqlClient:
             resultset = await cursor.fetchall()
             _logger.debug(f"Retrieved resultset: {resultset}. Closing cursor.")
             await cursor.close()
+            await conn.close()
         finally:
             self._connection_pool.release(conn)
 
