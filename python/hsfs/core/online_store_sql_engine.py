@@ -337,8 +337,6 @@ class OnlineStoreSqlClient:
                 _logger.debug(f"Processing row: {row} for prepared statement {key}")
                 result_dict = dict(row)
                 serving_vector.update(result_dict)
-
-        loop.stop()
         return serving_vector
 
     def _batch_vector_results(
@@ -441,14 +439,12 @@ class OnlineStoreSqlClient:
                         self._get_result_key_serving_key(serving_keys, entry), {}
                     )
                 )
-        
-        loop.stop()
         return batch_results, serving_keys_all_fg
 
     def _get_or_create_event_loop(self):
         try:
             _logger.debug("Acquiring or starting event loop for async engine.")
-            loop = asyncio.get_running_loop()
+            loop = asyncio.get_event_loop()
             asyncio.set_event_loop(loop)
         except RuntimeError as ex:
             if "There is no current event loop in thread" in str(ex):
