@@ -566,9 +566,10 @@ class OnlineStoreSqlClient:
             _logger.debug(
                 f"Executing prepared statement: {stmt} with bind params: {bind_params}"
             )
-            async with conn.execute(stmt, bind_params) as cursor:
+            async with conn.cursor() as cursor:
                 # Fetch the result
                 _logger.debug("Waiting for resultset.")
+                cursor.execute(stmt, bind_params)
                 resultset = await cursor.fetchall()
                 _logger.debug(f"Retrieved resultset: {resultset}. Closing cursor.")
                 print(1)
