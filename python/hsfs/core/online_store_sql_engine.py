@@ -562,7 +562,7 @@ class OnlineStoreSqlClient:
                 len(self._prepared_statements[self.SINGLE_VECTOR_KEY])
             )
         async with self._connection_pool.acquire() as conn:
-             # Execute the prepared statement
+            # Execute the prepared statement
             _logger.debug(
                 f"Executing prepared statement: {stmt} with bind params: {bind_params}"
             )
