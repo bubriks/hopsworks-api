@@ -329,6 +329,7 @@ class OnlineStoreSqlClient:
         results_dict = loop.run_until_complete(
             self._execute_prep_statements(prepared_statement_execution, bind_entries)
         )
+        loop.stop()
         _logger.debug(f"Retrieved feature vectors: {results_dict}")
         _logger.debug("Constructing serving vector from results")
         for key in results_dict:
@@ -397,6 +398,7 @@ class OnlineStoreSqlClient:
         parallel_results = loop.run_until_complete(
             self._execute_prep_statements(prepared_stmts_to_execute, entry_values)
         )
+        loop.stop()
 
         _logger.debug(f"Retrieved feature vectors: {parallel_results}, stitching them.")
         # construct the results
@@ -561,22 +563,17 @@ class OnlineStoreSqlClient:
             await self._get_connection_pool(
                 len(self._prepared_statements[self.SINGLE_VECTOR_KEY])
             )
-        conn = await self._connection_pool.acquire()
-
-        # Execute the prepared statement
-        _logger.debug(
-            f"Executing prepared statement: {stmt} with bind params: {bind_params}"
-        )
-        cursor = await conn.execute(stmt, bind_params)
-
-        # Fetch the result
-        _logger.debug("Waiting for resultset.")
-        resultset = await cursor.fetchall()
-        _logger.debug(f"Retrieved resultset: {resultset}. Closing cursor.")
-
-        await cursor.close()
-        conn.close()
-        self._connection_pool.release(conn)
+        async with self._connection_pool.acquire() as conn:
+            # Execute the prepared statement
+            _logger.debug(
+                f"Executing prepared statement: {stmt} with bind params: {bind_params}"
+            )
+            cursor = await conn.execute(stmt, bind_params)
+            # Fetch the result
+            _logger.debug("Waiting for resultset.")
+            resultset = await cursor.fetchall()
+            _logger.debug(f"Retrieved resultset: {resultset}. Closing cursor.")
+            await cursor.close()
 
         return resultset
 
