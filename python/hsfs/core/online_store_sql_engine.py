@@ -572,9 +572,8 @@ class OnlineStoreSqlClient:
             resultset = await cursor.fetchall()
             _logger.debug(f"Retrieved resultset: {resultset}. Closing cursor.")
             await cursor.close()
+            self._connection_pool.release(conn)
 
-        self._connection_pool.close()
-        await self._connection_pool.wait_closed()
         return resultset
 
     async def _execute_prep_statements(
