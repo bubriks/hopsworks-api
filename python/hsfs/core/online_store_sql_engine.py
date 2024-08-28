@@ -329,7 +329,6 @@ class OnlineStoreSqlClient:
         results_dict = loop.run_until_complete(
             self._execute_prep_statements(prepared_statement_execution, bind_entries)
         )
-
         _logger.debug(f"Retrieved feature vectors: {results_dict}")
         _logger.debug("Constructing serving vector from results")
         for key in results_dict:
@@ -610,8 +609,6 @@ class OnlineStoreSqlClient:
         results_dict = {}
         for i, key in enumerate(prepared_statements):
             results_dict[key] = results[i]
-
-        self._connection_pool.close()
 
         return results_dict
 
