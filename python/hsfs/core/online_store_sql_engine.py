@@ -565,17 +565,17 @@ class OnlineStoreSqlClient:
         conn = await self._connection_pool.acquire()
         try:
             # Execute the prepared statement
+            cursor = await conn.cursor()
             _logger.debug(
                 f"Executing prepared statement: {stmt} with bind params: {bind_params}"
             )
-            cursor = await conn.execute(stmt, bind_params)
+            await cursor.execute(stmt, bind_params)
             # Fetch the result
             _logger.debug("Waiting for resultset.")
             resultset = await cursor.fetchall()
             _logger.debug(f"Retrieved resultset: {resultset}. Closing cursor.")
             await cursor.close()
         finally:
-            self._connection_pool.release(conn)
             await conn.close()
 
         return resultset
