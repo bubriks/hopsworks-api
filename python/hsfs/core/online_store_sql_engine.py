@@ -329,7 +329,6 @@ class OnlineStoreSqlClient:
         results_dict = loop.run_until_complete(
             self._execute_prep_statements(prepared_statement_execution, bind_entries)
         )
-
         _logger.debug(f"Retrieved feature vectors: {results_dict}")
         _logger.debug("Constructing serving vector from results")
         for key in results_dict:
@@ -337,6 +336,7 @@ class OnlineStoreSqlClient:
                 _logger.debug(f"Processing row: {row} for prepared statement {key}")
                 result_dict = dict(row)
                 serving_vector.update(result_dict)
+
         return serving_vector
 
     def _batch_vector_results(
