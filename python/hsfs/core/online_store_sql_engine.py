@@ -592,6 +592,7 @@ class OnlineStoreSqlClient:
         )
 
         try:
+            print(1)
             tasks = [
                 asyncio.create_task(
                     self._query_async_sql(prepared_statements[key], entries[key], pool),
@@ -599,12 +600,15 @@ class OnlineStoreSqlClient:
                 )
                 for key in prepared_statements
             ]
+            print(1.5)
             # Run the queries in parallel using asyncio.gather
             results = await asyncio.gather(*tasks)
         except asyncio.CancelledError as e:
+            print(3)
             _logger.error(f"Failed executing prepared statements: {e}")
             raise e
         finally:
+            print(2)
             # close connection pool
             pool.close()
             await pool.wait_closed()
