@@ -555,9 +555,9 @@ class OnlineStoreSqlClient:
             hostname=self._hostname,
         )
 
-    async def _query_async_sql(self, stmt, bind_params):
+    async def _query_async_sql(self, stmt, bind_params, pool):
         """Query prepared statement together with bind params using aiomysql connection pool"""
-        async with self._connection_pool.acquire() as conn:
+        async with pool.acquire() as conn:
             # Execute the prepared statement
             _logger.debug(
                 f"Executing prepared statement: {stmt} with bind params: {bind_params}"
@@ -596,7 +596,7 @@ class OnlineStoreSqlClient:
 
             tasks = [
                 asyncio.create_task(
-                    self._query_async_sql(prepared_statements[key], entries[key]),
+                    self._query_async_sql(prepared_statements[key], entries[key], self._connection_pool),
                     name="query_prep_statement_key" + str(key),
                 )
                 for key in prepared_statements
