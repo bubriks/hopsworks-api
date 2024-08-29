@@ -588,28 +588,29 @@ class OnlineStoreSqlClient:
                     prepared_statements.pop(key)
 
         try:
-            try:
-                # create connection pool
-                await self._get_connection_pool(
-                    len(self._prepared_statements[self.SINGLE_VECTOR_KEY])
-                )
+            # create connection pool
+            await self._get_connection_pool(
+                len(self._prepared_statements[self.SINGLE_VECTOR_KEY])
+            )
+            print(1)
 
-                tasks = [
-                    asyncio.create_task(
-                        self._query_async_sql(prepared_statements[key], entries[key]),
-                        name="query_prep_statement_key" + str(key),
-                    )
-                    for key in prepared_statements
-                ]
-                # Run the queries in parallel using asyncio.gather
-                results = await asyncio.gather(*tasks)
-            finally:
-                # close connection pool
-                self._connection_pool.close()
-                await self._connection_pool.wait_closed()
+            tasks = [
+                asyncio.create_task(
+                    self._query_async_sql(prepared_statements[key], entries[key]),
+                    name="query_prep_statement_key" + str(key),
+                )
+                for key in prepared_statements
+            ]
+            # Run the queries in parallel using asyncio.gather
+            results = await asyncio.gather(*tasks)
         except asyncio.CancelledError as e:
             _logger.error(f"Failed executing prepared statements: {e}")
             raise e
+        finally:
+            # close connection pool
+            print(2)
+            self._connection_pool.close()
+            await self._connection_pool.wait_closed()
 
         # Create a dict of results with the prepared statement index as key
         results_dict = {}
