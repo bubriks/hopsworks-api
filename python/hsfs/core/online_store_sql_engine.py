@@ -557,10 +557,6 @@ class OnlineStoreSqlClient:
 
     async def _query_async_sql(self, stmt, bind_params):
         """Query prepared statement together with bind params using aiomysql connection pool"""
-        # create connection pool
-        await self._get_connection_pool(
-            len(self._prepared_statements[self.SINGLE_VECTOR_KEY])
-        )
         async with self._connection_pool.acquire() as conn:
             # Execute the prepared statement
             _logger.debug(
@@ -572,10 +568,6 @@ class OnlineStoreSqlClient:
             resultset = await cursor.fetchall()
             _logger.debug(f"Retrieved resultset: {resultset}. Closing cursor.")
             await cursor.close()
-
-        # close connection pool
-        self._connection_pool.close()
-        await self._connection_pool.wait_closed()
 
         return resultset
 
@@ -596,15 +588,25 @@ class OnlineStoreSqlClient:
                     prepared_statements.pop(key)
 
         try:
-            tasks = [
-                asyncio.create_task(
-                    self._query_async_sql(prepared_statements[key], entries[key]),
-                    name="query_prep_statement_key" + str(key),
+            try:
+                # create connection pool
+                await self._get_connection_pool(
+                    len(self._prepared_statements[self.SINGLE_VECTOR_KEY])
                 )
-                for key in prepared_statements
-            ]
-            # Run the queries in parallel using asyncio.gather
-            results = await asyncio.gather(*tasks)
+
+                tasks = [
+                    asyncio.create_task(
+                        self._query_async_sql(prepared_statements[key], entries[key]),
+                        name="query_prep_statement_key" + str(key),
+                    )
+                    for key in prepared_statements
+                ]
+                # Run the queries in parallel using asyncio.gather
+                results = await asyncio.gather(*tasks)
+            finally:
+                # close connection pool
+                self._connection_pool.close()
+                await self._connection_pool.wait_closed()
         except asyncio.CancelledError as e:
             _logger.error(f"Failed executing prepared statements: {e}")
             raise e
