@@ -73,7 +73,6 @@ class OnlineStoreSqlClient:
         self._prefix_by_serving_index = None
         self._pkname_by_serving_index = None
         self._serving_key_by_serving_index: Dict[str, ServingKey] = {}
-        self._connection_pool = None
         self._serving_keys: Set[ServingKey] = set(serving_keys or [])
 
         self._prepared_statements: Dict[str, List[ServingPreparedStatement]] = {}
@@ -547,7 +546,7 @@ class OnlineStoreSqlClient:
         ]
 
     async def _get_connection_pool(self, default_min_size: int) -> None:
-        self._connection_pool = await util_sql.create_async_engine(
+        return await util_sql.create_async_engine(
             self._online_connector,
             self._external,
             default_min_size,
@@ -555,14 +554,9 @@ class OnlineStoreSqlClient:
             hostname=self._hostname,
         )
 
-    async def _query_async_sql(self, stmt, bind_params):
+    async def _query_async_sql(self, stmt, bind_params, pool):
         """Query prepared statement together with bind params using aiomysql connection pool"""
-        # create connection pool
-        await self._get_connection_pool(
-            len(self._prepared_statements[self.SINGLE_VECTOR_KEY])
-        )
-
-        async with self._connection_pool.acquire() as conn:
+        async with pool.acquire() as conn:
             # Execute the prepared statement
             _logger.debug(
                 f"Executing prepared statement: {stmt} with bind params: {bind_params}"
@@ -573,10 +567,6 @@ class OnlineStoreSqlClient:
             resultset = await cursor.fetchall()
             _logger.debug(f"Retrieved resultset: {resultset}. Closing cursor.")
             await cursor.close()
-
-        # close connection pool
-        self._connection_pool.close()
-        await self._connection_pool.wait_closed()
 
         return resultset
 
@@ -596,10 +586,15 @@ class OnlineStoreSqlClient:
                 if key not in entries:
                     prepared_statements.pop(key)
 
+        # create connection pool
+        pool = await self._get_connection_pool(
+            len(self._prepared_statements[self.SINGLE_VECTOR_KEY])
+        )
+
         try:
             tasks = [
                 asyncio.create_task(
-                    self._query_async_sql(prepared_statements[key], entries[key]),
+                    self._query_async_sql(prepared_statements[key], entries[key], pool),
                     name="query_prep_statement_key" + str(key),
                 )
                 for key in prepared_statements
@@ -609,6 +604,10 @@ class OnlineStoreSqlClient:
         except asyncio.CancelledError as e:
             _logger.error(f"Failed executing prepared statements: {e}")
             raise e
+        finally:
+            # close connection pool
+            pool.close()
+            await pool.wait_closed()
 
         # Create a dict of results with the prepared statement index as key
         results_dict = {}
@@ -745,7 +744,3 @@ class OnlineStoreSqlClient:
     @property
     def online_connector(self) -> storage_connector.StorageConnector:
         return self._online_connector
-
-    @property
-    def connection_pool(self) -> aiomysql.utils._ConnectionContextManager:
-        return self._connection_pool
