@@ -81,14 +81,8 @@ async def create_async_engine(
     default_min_size: int,
     options: Optional[Dict[str, Any]] = None,
     hostname: Optional[str] = None,
+    loop = None,
 ) -> Any:
-    try:
-        loop = asyncio.get_running_loop()
-    except RuntimeError as er:
-        raise RuntimeError(
-            "Event loop is not running. Please invoke this co-routine from a running loop or provide an event loop."
-        ) from er
-
     online_options = online_conn.spark_options()
     # read the keys user, password from online_conn as use them while creating the connection pool
     url = make_url(online_options["url"].replace("jdbc:", ""))

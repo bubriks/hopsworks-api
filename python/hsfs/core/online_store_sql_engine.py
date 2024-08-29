@@ -326,7 +326,7 @@ class OnlineStoreSqlClient:
         )
         loop = self._get_or_create_event_loop()
         results_dict = loop.run_until_complete(
-            self._execute_prep_statements(prepared_statement_execution, bind_entries)
+            self._execute_prep_statements(prepared_statement_execution, bind_entries, loop)
         )
         _logger.debug(f"Retrieved feature vectors: {results_dict}")
         _logger.debug("Constructing serving vector from results")
@@ -394,7 +394,7 @@ class OnlineStoreSqlClient:
         # run all the prepared statements in parallel using aiomysql engine
         loop = self._get_or_create_event_loop()
         parallel_results = loop.run_until_complete(
-            self._execute_prep_statements(prepared_stmts_to_execute, entry_values)
+            self._execute_prep_statements(prepared_stmts_to_execute, entry_values, loop)
         )
 
         _logger.debug(f"Retrieved feature vectors: {parallel_results}, stitching them.")
@@ -545,19 +545,21 @@ class OnlineStoreSqlClient:
             OnlineStoreSqlClient.BATCH_VECTOR_KEY,
         ]
 
-    async def _get_connection_pool(self, default_min_size: int) -> None:
+    async def _get_connection_pool(self, default_min_size: int, loop) -> None:
         return await util_sql.create_async_engine(
             self._online_connector,
             self._external,
             default_min_size,
             options=self._connection_options,
             hostname=self._hostname,
+            loop=loop,
         )
 
     async def _query_async_sql(self, stmt, bind_params, pool):
         """Query prepared statement together with bind params using aiomysql connection pool"""
         async with pool.acquire() as conn:
             # Execute the prepared statement
+            print(f"Executing prepared statement: {stmt} with bind params: {bind_params}")
             _logger.debug(
                 f"Executing prepared statement: {stmt} with bind params: {bind_params}"
             )
@@ -574,6 +576,7 @@ class OnlineStoreSqlClient:
         self,
         prepared_statements: Dict[int, str],
         entries: Union[List[Dict[str, Any]], Dict[str, Any]],
+        loop,
     ):
         """Iterate over prepared statements to create async tasks
         and gather all tasks results for a given list of entries."""
@@ -588,7 +591,7 @@ class OnlineStoreSqlClient:
 
         # create connection pool
         pool = await self._get_connection_pool(
-            len(self._prepared_statements[self.SINGLE_VECTOR_KEY])
+            len(self._prepared_statements[self.SINGLE_VECTOR_KEY]), loop
         )
 
         try:
@@ -603,6 +606,7 @@ class OnlineStoreSqlClient:
             print(1.5)
             # Run the queries in parallel using asyncio.gather
             results = await asyncio.gather(*tasks)
+            print(1.10)
         except asyncio.CancelledError as e:
             print(3)
             _logger.error(f"Failed executing prepared statements: {e}")
