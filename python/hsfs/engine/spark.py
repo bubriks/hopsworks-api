@@ -484,6 +484,7 @@ class Engine:
                 self._spark_context,
             )
 
+            feature_group._location = self.setup_storage_connector(feature_group.storage_connector, feature_group.path)
             hudi_engine_instance.save_hudi_fg(
                 dataframe, self.APPEND, operation, write_options, validation_id
             )
@@ -495,7 +496,6 @@ class Engine:
                 self._spark_session,
                 self._spark_context,
             )
-            feature_group._location = self.setup_storage_connector(feature_group.storage_connector, feature_group.path)
             delta_engine_instance.save_delta_fg(dataframe, write_options, validation_id)
         else:
             dataframe.write.format(self.HIVE_FORMAT).mode(self.APPEND).options(
