@@ -4559,7 +4559,7 @@ class TestSpark:
         mock_spark_engine_save_dataframe = mocker.patch(
             "hsfs.engine.spark.Engine.save_dataframe"
         )
-        mock_spark_table = mocker.patch("pyspark.sql.session.SparkSession.table")
+        mock_spark_table = mocker.patch("pyspark.sql.session.SparkSession.read")
 
         # Arrange
         spark_engine = spark.Engine()
