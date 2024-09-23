@@ -1255,7 +1255,10 @@ class Engine:
         )
 
         if (new_features is not None):
-            warnings.warn(new_features)
+            warnings.warn(new_features,
+                util.FeatureGroupWarning,
+                stacklevel=1,
+            )
             if isinstance(new_features, list):
                 for new_feature in new_features:
                     dataframe = dataframe.withColumn(new_feature.name, lit("").cast(new_feature.type))
