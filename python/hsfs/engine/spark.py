@@ -1249,7 +1249,7 @@ class Engine:
             return True
         return False
 
-    def save_empty_dataframe(self, feature_group, new_features: None):
+    def save_empty_dataframe(self, feature_group, new_features=None):
         dataframe = self._spark_session.read.format("hudi").load(
             feature_group.get_uri()
         )
