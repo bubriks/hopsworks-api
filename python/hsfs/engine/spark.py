@@ -188,7 +188,7 @@ class Engine:
         self._spark_session.sparkContext.setJobGroup(group_id, description)
 
     def register_external_temporary_table(self, external_fg, alias):
-        if isinstance(external_fg, fg_mod.ExternalFeatureGroup):
+        if not isinstance(external_fg, fg_mod.SpineGroup):
             external_dataset = external_fg.storage_connector.read(
                 external_fg.query,
                 external_fg.data_format,
