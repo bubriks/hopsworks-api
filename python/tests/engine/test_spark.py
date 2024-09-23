@@ -4559,7 +4559,8 @@ class TestSpark:
         mock_spark_engine_save_dataframe = mocker.patch(
             "hsfs.engine.spark.Engine.save_dataframe"
         )
-        mock_spark_table = mocker.patch("pyspark.sql.session.SparkSession.read.format")
+        mock_spark_format = mocker.Mock()
+        mocker.patch("pyspark.sql.session.SparkSession.read", return_value=mock_spark_format)
 
         # Arrange
         spark_engine = spark.Engine()
@@ -4579,7 +4580,7 @@ class TestSpark:
 
         # Assert
         assert mock_spark_engine_save_dataframe.call_count == 1
-        assert mock_spark_table.call_count == 1
+        assert mock_spark_format.call_count == 1
 
     def test_apply_transformation_function_single_output(self, mocker):
         # Arrange
