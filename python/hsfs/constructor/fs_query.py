@@ -108,13 +108,6 @@ class FsQuery:
                     external_fg_alias.alias,
                 )
 
-        if self._hudi_cached_feature_groups is not None:
-            for external_fg_alias in self._hudi_cached_feature_groups:
-                engine.get_instance().register_external_temporary_table(
-                    external_fg_alias.feature_group,
-                    external_fg_alias.alias,
-                )
-
     def register_hudi_tables(
         self,
         feature_store_id: int,

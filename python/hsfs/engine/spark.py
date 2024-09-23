@@ -197,13 +197,6 @@ class Engine:
             )
         elif isinstance(external_fg, fg_mod.SpineGroup):
             external_dataset = external_fg.dataframe
-        else:
-            external_dataset = external_fg.storage_connector.read(
-                None,
-                external_fg.time_travel_format,
-                None,
-                external_fg.get_uri(),
-            )
         if external_fg.location:
             self._spark_session.sparkContext.textFile(external_fg.location).collect()
 
@@ -226,10 +219,9 @@ class Engine:
             read_options,
         )
 
-        if (hudi_fg_alias._feature_group.storage_connector is None):
-            hudi_engine_instance.reconcile_hudi_schema(
-                self.save_empty_dataframe, hudi_fg_alias, read_options
-            )
+        hudi_engine_instance.reconcile_hudi_schema(
+            self.save_empty_dataframe, hudi_fg_alias, read_options
+        )
 
     def register_delta_temporary_table(
         self, delta_fg_alias, feature_store_id, feature_store_name, read_options
