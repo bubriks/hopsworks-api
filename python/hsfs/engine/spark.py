@@ -1250,8 +1250,7 @@ class Engine:
         return False
 
     def save_empty_dataframe(self, feature_group):
-        fg_table_name = feature_group._get_table_name()
-        dataframe = self._spark_session.table(fg_table_name).limit(0)
+        dataframe =  self._spark_session.read.format("hudi").load(feature_group.get_uri()).limit(0)
 
         self.save_dataframe(
             feature_group,
