@@ -174,9 +174,6 @@ class TestSpark:
         # Arrange
         mocker.patch("hopsworks_common.client.get_instance")
         mock_sc_read = mocker.patch("hsfs.storage_connector.JdbcConnector.read")
-        mock_pyspark_getOrCreate = mocker.patch(
-            "pyspark.sql.session.SparkSession.builder.getOrCreate"
-        )
 
         spark_engine = spark.Engine()
 
