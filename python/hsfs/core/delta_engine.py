@@ -161,25 +161,14 @@ class DeltaEngine:
         commit_date_string = util.get_hudi_datestr_from_timestamp(commit_timestamp)
         operation_metrics = last_commit["operationMetrics"]
 
-        if version == 0:
-            fg_commit = feature_group_commit.FeatureGroupCommit(
-                commitid=None,
-                commit_date_string=commit_date_string,
-                commit_time=commit_timestamp,
-                rows_inserted=operation_metrics["numOutputRows"],
-                rows_updated=0,
-                rows_deleted=0,
-                last_active_commit_time=commit_timestamp,
-            )
-        else:
-            fg_commit = feature_group_commit.FeatureGroupCommit(
-                commitid=None,
-                commit_date_string=commit_date_string,
-                commit_time=commit_timestamp,
-                rows_inserted=operation_metrics["numTargetRowsInserted"],
-                rows_updated=operation_metrics["numTargetRowsUpdated"],
-                rows_deleted=operation_metrics["numTargetRowsDeleted"],
-                last_active_commit_time=commit_timestamp,
-            )
+        fg_commit = feature_group_commit.FeatureGroupCommit(
+            commitid=None,
+            commit_date_string=commit_date_string,
+            commit_time=commit_timestamp,
+            rows_inserted=operation_metrics["numOutputRows"],
+            rows_updated=0,
+            rows_deleted=0,
+            last_active_commit_time=commit_timestamp,
+        )
 
         return fg_commit
