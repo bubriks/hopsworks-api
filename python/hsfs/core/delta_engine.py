@@ -168,8 +168,6 @@ class DeltaEngine:
         oldest_commit_timestamp = util.convert_event_time_to_timestamp(
             oldest_commit["timestamp"]
         )
-        oldest_active_commit_time = util.get_hudi_datestr_from_timestamp(oldest_commit_timestamp)
-
 
         fg_commit = feature_group_commit.FeatureGroupCommit(
             commitid=None,
@@ -178,7 +176,7 @@ class DeltaEngine:
             rows_inserted=operation_metrics["numOutputRows"],
             rows_updated=0,
             rows_deleted=0,
-            last_active_commit_time=oldest_active_commit_time,
+            last_active_commit_time=oldest_commit_timestamp,
         )
 
         return fg_commit
