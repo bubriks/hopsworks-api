@@ -2068,9 +2068,9 @@ class FeatureGroupBase:
         return self._storage_connector
 
     def prepare_spark_location(self) -> str:
-        location = self._feature_group.location
-        if (self._feature_group.storage_connector is not None):
-            location = self._feature_group.storage_connector.prepare_spark(location)
+        location = self.location
+        if (self.storage_connector is not None):
+            location = self.storage_connector.prepare_spark(location)
         return location
 
     @property
