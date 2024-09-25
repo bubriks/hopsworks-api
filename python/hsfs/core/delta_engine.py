@@ -52,14 +52,12 @@ class DeltaEngine:
         return self._feature_group_api.commit(self._feature_group, fg_commit)
 
     def register_temporary_table(self, delta_fg_alias, read_options):
-        path = self._feature_group.location
-        if (self._feature_group.storage_connector is not None):
-            path = self._feature_group.storage_connector.prepare_spark(path)
+        location = self._feature_group.prepare_spark_location()
 
         delta_options = self._setup_delta_read_opts(delta_fg_alias, read_options)
         self._spark_session.read.format(self.DELTA_SPARK_FORMAT).options(
             **delta_options
-        ).load(self._feature_group.location).createOrReplaceTempView(
+        ).load(location).createOrReplaceTempView(
             delta_fg_alias.alias
         )
 
