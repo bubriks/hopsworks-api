@@ -121,36 +121,13 @@ class DeltaEngine:
         if write_options is None:
             write_options = {}
 
-        if not DeltaTable.isDeltaTable(
-            self._spark_session, uri
-        ):
-            (
-                dataset.write.format(DeltaEngine.DELTA_SPARK_FORMAT)
-                .options(**write_options)
-                .partitionBy(
-                    self._feature_group.partition_key
-                    if self._feature_group.partition_key
-                    else []
-                )
-                .mode("append")
-                .save(uri)
-            )
-        else:
-            fg_source_table = DeltaTable.forPath(
-                self._spark_session, uri
-            )
-
-            source_alias = (
-                f"{self._feature_group.name}_{self._feature_group.version}_source"
-            )
-            updates_alias = (
-                f"{self._feature_group.name}_{self._feature_group.version}_updates"
-            )
-            merge_query_str = self._generate_merge_query(source_alias, updates_alias)
-
-            fg_source_table.alias(source_alias).merge(
-                dataset.alias(updates_alias), merge_query_str
-            ).whenMatchedUpdateAll().whenNotMatchedInsertAll().execute()
+        dataset.write.format(
+            DeltaEngine.DELTA_SPARK_FORMAT
+            ).options(**write_options).partitionBy(
+                self._feature_group.partition_key
+                if self._feature_group.partition_key
+                else []
+            ).mode("append").save(uri)
 
         return self._get_last_commit_metadata(
             self._spark_session, uri
