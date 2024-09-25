@@ -153,6 +153,8 @@ class DeltaEngine:
     @staticmethod
     def _get_last_commit_metadata(spark_context, base_path):
         fg_source_table = DeltaTable.forPath(spark_context, base_path)
+
+        # Get info about the latest commit
         last_commit = fg_source_table.history(1).first().asDict()
         version = last_commit["version"]
         commit_timestamp = util.convert_event_time_to_timestamp(
@@ -161,6 +163,14 @@ class DeltaEngine:
         commit_date_string = util.get_hudi_datestr_from_timestamp(commit_timestamp)
         operation_metrics = last_commit["operationMetrics"]
 
+        # Get info about the oldest remaining commit
+        oldest_commit = fg_source_table.history().orderBy("version").first().asDict()
+        oldest_commit_timestamp = util.convert_event_time_to_timestamp(
+            oldest_commit["timestamp"]
+        )
+        oldest_active_commit_time = util.get_hudi_datestr_from_timestamp(oldest_commit_timestamp)
+
+
         fg_commit = feature_group_commit.FeatureGroupCommit(
             commitid=None,
             commit_date_string=commit_date_string,
@@ -168,7 +178,7 @@ class DeltaEngine:
             rows_inserted=operation_metrics["numOutputRows"],
             rows_updated=0,
             rows_deleted=0,
-            last_active_commit_time=commit_timestamp,
+            last_active_commit_time=oldest_active_commit_time,
         )
 
         return fg_commit
