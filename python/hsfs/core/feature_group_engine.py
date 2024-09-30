@@ -245,7 +245,7 @@ class FeatureGroupEngine(feature_group_base_engine.FeatureGroupBaseEngine):
                 engine.get_instance()._spark_session,
             )
             return hudi_engine_instance.delete_record(delete_df, write_options)
-        
+
     @staticmethod
     def clean(feature_group, write_options):
         if feature_group.time_travel_format == "DELTA":

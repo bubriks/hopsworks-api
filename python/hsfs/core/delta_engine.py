@@ -157,7 +157,7 @@ class DeltaEngine:
         return self._get_last_commit_metadata(
             self._spark_session, location
         )
-    
+
     def vacuum(self, retention_hours):
         location = self._feature_group.prepare_spark_location()
 
