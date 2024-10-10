@@ -19,18 +19,12 @@ package com.logicalclocks.hsfs.spark.engine.hudi;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.logicalclocks.hsfs.FeatureStoreException;
-import com.logicalclocks.hsfs.engine.FeatureGroupUtils;
+import com.logicalclocks.hsfs.engine.AvroEngine;
+
 import lombok.SneakyThrows;
 import org.apache.avro.Conversions;
-import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
-import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericRecord;
-import org.apache.avro.io.BinaryDecoder;
-import org.apache.avro.io.DatumReader;
-import org.apache.avro.io.Decoder;
-import org.apache.avro.io.DecoderFactory;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.Headers;
@@ -38,30 +32,19 @@ import org.apache.kafka.common.serialization.Deserializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 public class DeltaStreamerAvroDeserializer implements Deserializer<GenericRecord> {
   private static final Logger LOGGER = LoggerFactory.getLogger(DeltaStreamerAvroDeserializer.class);
 
   private final ObjectMapper objectMapper = new ObjectMapper();
+
   private String subjectId;
   private String featureGroupId;
-  private Schema schema;
-  private Schema encodedSchema;
-  private final BinaryDecoder binaryDecoder = DecoderFactory.get().binaryDecoder(new byte[0], null);
-  private List<String> complexFeatures = null;
-  private DatumReader<GenericRecord> encodedDatumReader;
-  private final FeatureGroupUtils featureGroupUtils = new FeatureGroupUtils();
-
-  private final Map<String, Schema> complexFeatureSchemas = new HashMap<>();
-  private final Map<String, DatumReader<GenericRecord>> complexFeaturesDatumReaders = new HashMap<>();
+  private AvroEngine avroEngine;
 
   public DeltaStreamerAvroDeserializer() {
   }
@@ -72,34 +55,19 @@ public class DeltaStreamerAvroDeserializer implements Deserializer<GenericRecord
     this.subjectId = (String) configs.get(HudiEngine.SUBJECT_ID);
     this.featureGroupId = (String) configs.get(HudiEngine.FEATURE_GROUP_ID);
     GenericData.get().addLogicalTypeConversion(new Conversions.DecimalConversion());
-    String featureGroupSchema = (String) configs.get(HudiEngine.FEATURE_GROUP_SCHEMA);
-    String encodedFeatureGroupSchema = configs.get(HudiEngine.FEATURE_GROUP_ENCODED_SCHEMA).toString()
-        .replace("\"type\":[\"bytes\",\"null\"]", "\"type\":[\"null\",\"bytes\"]");
-    String complexFeatureString = (String) configs.get(HudiEngine.FEATURE_GROUP_COMPLEX_FEATURES);
 
+    String featureGroupSchema = (String) configs.get(HudiEngine.FEATURE_GROUP_SCHEMA);
+    String encodedFeatureGroupSchema = (String) configs.get(HudiEngine.FEATURE_GROUP_ENCODED_SCHEMA);
+    String complexFeatureString = (String) configs.get(HudiEngine.FEATURE_GROUP_COMPLEX_FEATURES);
+    List<String> complexFeatures;
     try {
       String[] stringArray = objectMapper.readValue(complexFeatureString, String[].class);
-      this.complexFeatures = Arrays.asList(stringArray);
+      complexFeatures = Arrays.asList(stringArray);
     } catch (JsonProcessingException e) {
       throw new SerializationException("Could not deserialize complex feature array: " + complexFeatureString, e);
     }
-    // full schema is only to get partial schema of complex features
-    this.schema = new Schema.Parser().parse(featureGroupSchema);
-    // encoded schema has binary type for complex features
-    this.encodedSchema = new Schema.Parser().parse(encodedFeatureGroupSchema);
-    this.encodedDatumReader = new GenericDatumReader<>(this.encodedSchema);
 
-    for (String complexFeature : complexFeatures) {
-      Schema featureSchema = null;
-      try {
-        featureSchema = new Schema.Parser().parse(featureGroupUtils.getFeatureAvroSchema(complexFeature, schema));
-      } catch (FeatureStoreException | IOException e) {
-        throw new SerializationException("Can't deserialize complex feature schema: " + complexFeature, e);
-      }
-
-      complexFeatureSchemas.put(complexFeature, featureSchema);
-      complexFeaturesDatumReaders.put(complexFeature, new GenericDatumReader<>(featureSchema));
-    }
+    avroEngine = new AvroEngine(featureGroupSchema, encodedFeatureGroupSchema, complexFeatures);
   }
 
   @Override
@@ -113,45 +81,7 @@ public class DeltaStreamerAvroDeserializer implements Deserializer<GenericRecord
 
   @Override
   public GenericRecord deserialize(String topic, byte[] data) {
-    GenericRecord finalResult = new GenericData.Record(this.schema);
-    GenericRecord result = null;
-
-    try {
-      if (data != null) {
-        Decoder decoder = DecoderFactory.get().binaryDecoder(data, binaryDecoder);
-        result = new GenericData.Record(this.encodedSchema);
-        result = encodedDatumReader.read(result, decoder);
-      }
-    } catch (Exception ex) {
-      LOGGER.info(
-          "Can't deserialize data '" + Arrays.toString(data) + "' from topic '" + topic + "'", ex);
-    }
-
-    Schema featureSchema;
-    byte[] featureData;
-    Decoder decoder;
-
-    for (String complexFeature : complexFeatures) {
-      ByteBuffer byteBuffer = (ByteBuffer) result.get(complexFeature);
-      featureData = new byte[byteBuffer.remaining()];
-      byteBuffer.get(featureData);
-      featureSchema = complexFeatureSchemas.get(complexFeature);
-      try {
-        decoder = DecoderFactory.get().binaryDecoder(featureData, binaryDecoder);
-        finalResult.put(complexFeature, complexFeaturesDatumReaders.get(complexFeature).read(null, decoder));
-      } catch (Exception ex) {
-        LOGGER.info(
-            "Can't deserialize complex feature data '" + Arrays.toString(featureData) + "' from topic '" + topic
-                + "' with schema: " + featureSchema.toString(true), ex);
-      }
-    }
-
-    for (String feature : this.schema.getFields().stream().map(Schema.Field::name).collect(Collectors.toList())) {
-      if (!complexFeatures.contains(feature)) {
-        finalResult.put(feature, result.get(feature));
-      }
-    }
-    return finalResult;
+    return avroEngine.deserialize(data);
   }
 
   private static String getHeader(Headers headers, String headerKey) {
