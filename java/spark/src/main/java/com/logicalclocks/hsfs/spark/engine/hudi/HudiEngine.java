@@ -25,12 +25,12 @@ import com.logicalclocks.hsfs.constructor.FeatureGroupAlias;
 import com.logicalclocks.hsfs.engine.FeatureGroupUtils;
 import com.logicalclocks.hsfs.metadata.FeatureGroupApi;
 import com.logicalclocks.hsfs.FeatureGroupBase;
-import com.logicalclocks.hsfs.metadata.KafkaApi;
 
-import com.logicalclocks.hsfs.metadata.StorageConnectorApi;
 import com.logicalclocks.hsfs.spark.FeatureGroup;
 import com.logicalclocks.hsfs.spark.FeatureStore;
 import com.logicalclocks.hsfs.spark.StreamFeatureGroup;
+import com.logicalclocks.hsfs.spark.engine.KafkaDeserializer;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hudi.common.model.HoodieCommitMetadata;
@@ -110,11 +110,6 @@ public class HudiEngine {
   protected static final String COMMIT_METADATA_KEYPREFIX_OPT_KEY = "hoodie.datasource.write.commitmeta.key.prefix";
   protected static final String DELTASTREAMER_CHECKPOINT_KEY = "deltastreamer.checkpoint.key";
   protected static final String INITIAL_CHECKPOINT_STRING = "initialCheckPointString";
-  protected static final String FEATURE_GROUP_SCHEMA = "com.logicalclocks.hsfs.spark.StreamFeatureGroup.avroSchema";
-  protected static final String FEATURE_GROUP_ENCODED_SCHEMA =
-      "com.logicalclocks.hsfs.spark.StreamFeatureGroup.encodedAvroSchema";
-  protected static final String FEATURE_GROUP_COMPLEX_FEATURES =
-      "com.logicalclocks.hsfs.spark.StreamFeatureGroup.complexFeatures";
   protected static final String KAFKA_SOURCE = "com.logicalclocks.hsfs.spark.engine.hudi.DeltaStreamerKafkaSource";
   protected static final String SCHEMA_PROVIDER =
       "com.logicalclocks.hsfs.spark.engine.hudi.DeltaStreamerSchemaProvider";
@@ -126,8 +121,6 @@ public class HudiEngine {
   protected static final String SPARK_MASTER = "yarn";
   protected static final String PROJECT_ID = "projectId";
   protected static final String FEATURE_STORE_NAME = "featureStoreName";
-  protected static final String SUBJECT_ID = "subjectId";
-  protected static final String FEATURE_GROUP_ID = "featureGroupId";
   protected static final String FEATURE_GROUP_NAME = "featureGroupName";
   protected static final String FEATURE_GROUP_VERSION = "featureGroupVersion";
   protected static final String FUNCTION_TYPE = "functionType";
@@ -146,8 +139,6 @@ public class HudiEngine {
   private FeatureGroupApi featureGroupApi = new FeatureGroupApi();
   private FeatureGroupCommit fgCommitMetadata = new FeatureGroupCommit();
   private DeltaStreamerConfig deltaStreamerConfig = new DeltaStreamerConfig();
-  private KafkaApi kafkaApi = new KafkaApi();
-  private StorageConnectorApi storageConnectorApi = new StorageConnectorApi();
 
   public void saveHudiFeatureGroup(SparkSession sparkSession, FeatureGroupBase featureGroup,
                                    Dataset<Row> dataset, HudiOperationType operation,
@@ -369,19 +360,21 @@ public class HudiEngine {
         writeOptions);
     hudiWriteOpts.put(PROJECT_ID, String.valueOf(streamFeatureGroup.getFeatureStore().getProjectId()));
     hudiWriteOpts.put(FEATURE_STORE_NAME, streamFeatureGroup.getFeatureStore().getName());
-    hudiWriteOpts.put(SUBJECT_ID, String.valueOf(streamFeatureGroup.getSubject().getId()));
-    hudiWriteOpts.put(FEATURE_GROUP_ID, String.valueOf(streamFeatureGroup.getId()));
     hudiWriteOpts.put(FEATURE_GROUP_NAME, streamFeatureGroup.getName());
     hudiWriteOpts.put(FEATURE_GROUP_VERSION, String.valueOf(streamFeatureGroup.getVersion()));
     hudiWriteOpts.put(HUDI_TABLE_NAME, utils.getFgName(streamFeatureGroup));
     hudiWriteOpts.put(HUDI_BASE_PATH, streamFeatureGroup.getLocation());
     hudiWriteOpts.put(HUDI_KAFKA_TOPIC, streamFeatureGroup.getOnlineTopicName());
-    hudiWriteOpts.put(FEATURE_GROUP_SCHEMA, streamFeatureGroup.getAvroSchema());
-    hudiWriteOpts.put(FEATURE_GROUP_ENCODED_SCHEMA, streamFeatureGroup.getEncodedAvroSchema());
-    hudiWriteOpts.put(FEATURE_GROUP_COMPLEX_FEATURES,
-        new JSONArray(streamFeatureGroup.getComplexFeatures()).toString());
     hudiWriteOpts.put(DELTA_SOURCE_ORDERING_FIELD_OPT_KEY,
         hudiWriteOpts.get(HUDI_PRECOMBINE_FIELD));
+
+    // KafkaDeserializer
+    hudiWriteOpts.put(KafkaDeserializer.SUBJECT_ID, String.valueOf(streamFeatureGroup.getSubject().getId()));
+    hudiWriteOpts.put(KafkaDeserializer.FEATURE_GROUP_ID, String.valueOf(streamFeatureGroup.getId()));
+    hudiWriteOpts.put(KafkaDeserializer.FEATURE_GROUP_SCHEMA, streamFeatureGroup.getAvroSchema());
+    hudiWriteOpts.put(KafkaDeserializer.FEATURE_GROUP_ENCODED_SCHEMA, streamFeatureGroup.getEncodedAvroSchema());
+    hudiWriteOpts.put(KafkaDeserializer.FEATURE_GROUP_COMPLEX_FEATURES,
+        new JSONArray(streamFeatureGroup.getComplexFeatures()).toString());
 
     // set consumer group id
     hudiWriteOpts.put(ConsumerConfig.GROUP_ID_CONFIG, String.valueOf(streamFeatureGroup.getId()));

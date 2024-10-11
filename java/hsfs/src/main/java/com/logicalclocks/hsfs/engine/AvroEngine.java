@@ -25,6 +25,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import org.apache.avro.Conversions;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericDatumReader;
@@ -59,6 +60,8 @@ public class AvroEngine {
 
   public AvroEngine(String avroSchema, String encodedAvroSchema, Collection<String> complexFeatures)
       throws FeatureStoreException, IOException {
+    GenericData.get().addLogicalTypeConversion(new Conversions.DecimalConversion());
+
     this.schema = new Schema.Parser().parse(avroSchema);
     this.encodedSchema = new Schema.Parser().parse(encodedAvroSchema);
 

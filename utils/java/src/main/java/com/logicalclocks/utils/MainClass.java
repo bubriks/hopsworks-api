@@ -17,7 +17,6 @@
 package com.logicalclocks.utils;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import com.logicalclocks.hsfs.spark.FeatureStore;
 import com.logicalclocks.hsfs.spark.HopsworksConnection;
 import com.logicalclocks.hsfs.spark.StreamFeatureGroup;
@@ -118,7 +117,16 @@ public class MainClass {
     boolean success = false;
     try {
       if (op.equals("offline_fg_materialization") || op.equals("offline_fg_backfill")) {
-        SparkEngine.getInstance().streamToHudiTable(streamFeatureGroup, writeOptions);
+        switch (streamFeatureGroup.getTimeTravelFormat()) {
+          case HUDI:
+            SparkEngine.getInstance().streamToHudiTable(streamFeatureGroup, writeOptions);
+            break;
+          case DELTA:
+            SparkEngine.getInstance().streamToDeltaTable(streamFeatureGroup, writeOptions);
+            break;
+          default:
+            LOGGER.error("Unrecognized time travelf ormat: {}", streamFeatureGroup.getTimeTravelFormat());
+        }
       }
       success = true;
     } catch (Exception e) {

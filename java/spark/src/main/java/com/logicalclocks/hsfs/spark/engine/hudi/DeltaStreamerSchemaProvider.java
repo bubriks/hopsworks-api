@@ -18,6 +18,8 @@
 package com.logicalclocks.hsfs.spark.engine.hudi;
 
 import com.logicalclocks.hsfs.FeatureStoreException;
+import com.logicalclocks.hsfs.spark.engine.KafkaDeserializer;
+
 import lombok.SneakyThrows;
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaParseException;
@@ -33,13 +35,13 @@ public class DeltaStreamerSchemaProvider extends SchemaProvider {
   public DeltaStreamerSchemaProvider(TypedProperties props, JavaSparkContext jssc) {
     super(props, jssc);
     DataSourceUtils.checkRequiredProperties(props,
-        Collections.singletonList(HudiEngine.FEATURE_GROUP_SCHEMA));
+        Collections.singletonList(KafkaDeserializer.FEATURE_GROUP_SCHEMA));
   }
 
   @SneakyThrows
   @Override
   public Schema getSourceSchema() {
-    String featureGroupSchema = this.config.getString(HudiEngine.FEATURE_GROUP_SCHEMA);
+    String featureGroupSchema = this.config.getString(KafkaDeserializer.FEATURE_GROUP_SCHEMA);
     try {
       return new Schema.Parser().parse(featureGroupSchema);
     } catch (SchemaParseException e) {

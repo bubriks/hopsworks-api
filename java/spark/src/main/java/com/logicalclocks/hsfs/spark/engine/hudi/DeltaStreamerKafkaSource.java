@@ -46,6 +46,8 @@ import org.apache.spark.streaming.kafka010.KafkaUtils;
 import org.apache.spark.streaming.kafka010.LocationStrategies;
 import org.apache.spark.streaming.kafka010.OffsetRange;
 
+import com.logicalclocks.hsfs.spark.engine.KafkaDeserializer;
+
 public class DeltaStreamerKafkaSource extends AvroSource {
   private static final Logger LOG = LogManager.getLogger(DeltaStreamerKafkaSource.class);
   private static final String NATIVE_KAFKA_KEY_DESERIALIZER_PROP = "key.deserializer";
@@ -60,7 +62,7 @@ public class DeltaStreamerKafkaSource extends AvroSource {
     String deserializerClassName =
         props.getString(DataSourceWriteOptions.KAFKA_AVRO_VALUE_DESERIALIZER_CLASS().key(), "");
     if (deserializerClassName.isEmpty()) {
-      props.put(NATIVE_KAFKA_VALUE_DESERIALIZER_PROP, DeltaStreamerAvroDeserializer.class);
+      props.put(NATIVE_KAFKA_VALUE_DESERIALIZER_PROP, KafkaDeserializer.class);
     } else {
       try {
         if (schemaProvider == null) {

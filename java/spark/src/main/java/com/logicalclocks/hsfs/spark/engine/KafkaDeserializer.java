@@ -15,15 +15,13 @@
  *
  */
 
-package com.logicalclocks.hsfs.spark.engine.hudi;
+package com.logicalclocks.hsfs.spark.engine;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.logicalclocks.hsfs.engine.AvroEngine;
 
 import lombok.SneakyThrows;
-import org.apache.avro.Conversions;
-import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.header.Header;
@@ -37,8 +35,16 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-public class DeltaStreamerAvroDeserializer implements Deserializer<GenericRecord> {
-  private static final Logger LOGGER = LoggerFactory.getLogger(DeltaStreamerAvroDeserializer.class);
+public class KafkaDeserializer implements Deserializer<GenericRecord> {
+  private static final Logger LOGGER = LoggerFactory.getLogger(KafkaDeserializer.class);
+
+  public static final String SUBJECT_ID = "subjectId";
+  public static final String FEATURE_GROUP_ID = "featureGroupId";
+  public static final String FEATURE_GROUP_SCHEMA = "com.logicalclocks.hsfs.spark.StreamFeatureGroup.avroSchema";
+  public static final String FEATURE_GROUP_ENCODED_SCHEMA =
+      "com.logicalclocks.hsfs.spark.StreamFeatureGroup.encodedAvroSchema";
+  public static final String FEATURE_GROUP_COMPLEX_FEATURES =
+      "com.logicalclocks.hsfs.spark.StreamFeatureGroup.complexFeatures";
 
   private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -46,19 +52,18 @@ public class DeltaStreamerAvroDeserializer implements Deserializer<GenericRecord
   private String featureGroupId;
   private AvroEngine avroEngine;
 
-  public DeltaStreamerAvroDeserializer() {
+  public KafkaDeserializer() {
   }
 
   @SneakyThrows
   @Override
   public void configure(Map<String, ?> configs, boolean isKey) {
-    this.subjectId = (String) configs.get(HudiEngine.SUBJECT_ID);
-    this.featureGroupId = (String) configs.get(HudiEngine.FEATURE_GROUP_ID);
-    GenericData.get().addLogicalTypeConversion(new Conversions.DecimalConversion());
+    this.subjectId = (String) configs.get(SUBJECT_ID);
+    this.featureGroupId = (String) configs.get(FEATURE_GROUP_ID);
+    String featureGroupSchema = (String) configs.get(FEATURE_GROUP_SCHEMA);
+    String encodedFeatureGroupSchema = (String) configs.get(FEATURE_GROUP_ENCODED_SCHEMA);
+    String complexFeatureString = (String) configs.get(FEATURE_GROUP_COMPLEX_FEATURES);
 
-    String featureGroupSchema = (String) configs.get(HudiEngine.FEATURE_GROUP_SCHEMA);
-    String encodedFeatureGroupSchema = (String) configs.get(HudiEngine.FEATURE_GROUP_ENCODED_SCHEMA);
-    String complexFeatureString = (String) configs.get(HudiEngine.FEATURE_GROUP_COMPLEX_FEATURES);
     List<String> complexFeatures;
     try {
       String[] stringArray = objectMapper.readValue(complexFeatureString, String[].class);

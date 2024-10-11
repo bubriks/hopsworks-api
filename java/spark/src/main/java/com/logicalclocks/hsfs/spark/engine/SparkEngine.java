@@ -28,6 +28,7 @@ import com.logicalclocks.hsfs.metadata.DatasetApi;
 import com.logicalclocks.hsfs.metadata.HopsworksExternalClient;
 import com.logicalclocks.hsfs.metadata.HopsworksInternalClient;
 import com.logicalclocks.hsfs.spark.constructor.Query;
+import com.logicalclocks.hsfs.spark.engine.delta.DeltaEngine;
 import com.logicalclocks.hsfs.spark.engine.hudi.HudiEngine;
 import com.logicalclocks.hsfs.DataFormat;
 import com.logicalclocks.hsfs.Feature;
@@ -143,6 +144,7 @@ public class SparkEngine extends EngineBase {
   private SparkSession sparkSession;
 
   private HudiEngine hudiEngine = new HudiEngine();
+  private DeltaEngine deltaEngine = new DeltaEngine();
 
   private SparkEngine() {
     sparkSession = SparkSession.builder()
@@ -791,6 +793,12 @@ public class SparkEngine extends EngineBase {
       throws Exception {
     writeOptions = getKafkaConfig(streamFeatureGroup, writeOptions);
     hudiEngine.streamToHoodieTable(sparkSession, streamFeatureGroup, writeOptions);
+  }
+
+  public void streamToDeltaTable(StreamFeatureGroup streamFeatureGroup, Map<String, String> writeOptions)
+      throws Exception {
+    writeOptions = getKafkaConfig(streamFeatureGroup, writeOptions);
+    deltaEngine.streamToDeltaTable(sparkSession, streamFeatureGroup, writeOptions);
   }
 
   public List<Feature> parseFeatureGroupSchema(Dataset<Row> dataset,
