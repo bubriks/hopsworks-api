@@ -370,6 +370,7 @@ if __name__ == "__main__":
             "run_feature_monitoring",
             "delta_vacuum_fg",
             "offline_fg_materialization",
+            "update_table_schema_fg",
         ],
         help="Operation type",
     )
