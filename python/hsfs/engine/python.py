@@ -1214,7 +1214,7 @@ class Engine:
 
     def update_table_schema(self, feature_group: Union[FeatureGroup, ExternalFeatureGroup]) -> None:
         _job = self._feature_group_api.update_table_schema(feature_group)
-        _job.run(
+        _job._wait_for_job(
             await_termination=True
         )
 
