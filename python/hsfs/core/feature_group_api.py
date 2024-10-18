@@ -26,7 +26,6 @@ from hsfs.core import (
     ingestion_job,
     ingestion_job_conf,
     job,
-    job_configuration,
 )
 
 
